@@ -270,3 +270,56 @@ Project owns no direct remediation — track `ucore-hci` kernel bump in issue #3
 **Next pass:** Per overwritten `NEXT-RESEARCH.md`. New top-of-funnel watches: PR #392 merge status, kernel package version landing in any new ucore-hci tag, shim-16.1-6 F44 stable promotion via dl.fedoraproject.org mirror.
 
 **Drive mirror note:** Daily Drive snapshot uploaded as `CloudWS-bootc-research-2026-05-19.md` (Drive file id `1GArjTrFe323rxfAdMBD6M1q3KBupJ94d`). Per-pass git push was blocked by a persistent HTTP 503 on the proxy's git-receive-pack endpoint (4+ retries with exponential backoff all failed); fell back to per-file `mcp__github__create_or_update_file` uploads — three commits on the remote, one per file. After remote was synchronized, local was hard-reset to origin/main to align with the MCP-push state.
+
+---
+
+## 2026-05-22T12:00Z — `scheduled-research-daily`
+
+**Agent ID:** `scheduled-research-daily`
+**Context:** Fifth substantive pass on the live research doc. 3 days since the previous *journaled* pass (2026-05-19). Followed the `NEXT-RESEARCH.md` agenda (P0 reverify of 9 ACTION REQUIRED items → P1–P10). Dispatched **three** parallel general-purpose research subagents: (A) kernel CVEs + base image + Secure Boot + cosign + NVIDIA; (B) K3s/Pacemaker/Podman/image-builder/composefs/bootc/etcd/Ceph/CrowdSec/fapolicyd/GNOME/WSL/Renovate/systemd; (C) Looking Glass/Gamescope/QEMU/libvirt/Mesa/Waydroid/ROCm/NVIDIA-Container-Toolkit.
+
+**Project state at time of run (unchanged):**
+- Version: `v0.1.4` (still — no rev in 11 days).
+- Base image: `ghcr.io/ublue-os/ucore-hci:stable-nvidia` (Containerfile / `image-versions.yml` line 12).
+- Git: started on detached HEAD at `efdf712 research: daily pass 2026-05-20 — NEXT-RESEARCH.md (1/3, MCP push, git-receive-pack 503)`; checked out `main` (in sync with `origin/main`) before editing.
+
+**IMPORTANT — the missing 2026-05-20 pass:** HEAD was `efdf712`, a commit titled "daily pass 2026-05-20 — NEXT-RESEARCH.md (1/3 ...git-receive-pack 503)". That pass committed **only** `NEXT-RESEARCH.md` (the "1/3") before a git-receive-pack 503; its journal (2/3) and knowledge-doc (3/3) edits **never landed**. That is why both `ai-journal.md` and `bootc-research-april2026.md` stopped at 2026-05-19 while `NEXT-RESEARCH.md` carried 2026-05-20 findings. **Today's pass therefore had to (a) fold the un-committed 2026-05-20 findings into the doc AND (b) add fresh 2026-05-22 deltas.** No 2026-05-20 or 2026-05-21 journal entry exists; this entry covers the gap.
+
+**CHANGED upstream / folded in this pass (knowledge-doc edits applied):**
+
+1. **Kernel local-root cluster grew from a Copy-Fail-centric framing to FIVE named vectors.** Added to §6.5 + action item 8:
+   - `CVE-2026-31635` "DirtyDecrypt" (RxGK/AFS-rxrpc LPE, CVSS 7.5, **only on `CONFIG_RXGK` kernels = Fedora/Arch** → applies to MiOS base; public PoC 2026-05-18; fix commit `aa54b1d27fe0`). **Date conflict noted:** earlier source said merged 2026-04-25, kernel-git shows commit ~2026-05-10 — left unconfirmed since the base is pre-fix regardless.
+   - `CVE-2026-46333` "ssh-keysign-pwn" (ptrace exit-race info-disclosure → LPE; steals SSH host keys + `/etc/shadow`; fix floors 7.0.8 / 6.18.31 / 6.12.89 / 6.6.139 / 6.1.173; fix commit `31e62c2ebbfd`, 2026-05-14).
+   - `CVE-2026-43500` (new RxRPC page-cache-write LPE) — now grouped by Red Hat under **RHSB-2026-003 "Dirty Frag"** together with the existing CVE-2026-43284 and CVE-2026-46300. Mechanism: deterministic LPE via `splice` / `MSG_SPLICE_PAGES` page-cache writes; public PoC; affects Fedora via RxRPC. Updated the CVE-2026-43284 + CVE-2026-46300 bullets to reflect the RHSB-2026-003 consolidation.
+   - Recorded kernel.org current stable/longterm (2026-05-17, unchanged: 7.0.9 / 6.18.32 / 6.12.90 / 6.6.140 / 6.1.173; mainline 7.1-rc4).
+
+2. **NVIDIA May 2026 security bulletin `a_id/5821` is PUBLISHED** (2026-05-19, updated 2026-05-21; 13 CVEs, 12 Linux, top **CVE-2026-24187** CVSS 8.8 Linux UAF). **This corrects the doc's prior "No May 2026 NVIDIA bulletin published" line** in §8.1, which was true on 2026-05-16 but false by 2026-05-19. Fix floors recorded; **project pins (LTS 580.159.04, feature 595.71.05) already satisfy all of them — no bump forced.** Action item 3 downgraded. §8.1 header + bullet rewritten.
+
+3. **K3s GA shipped 2026-05-20** — v1.36.1+k3s1 / v1.35.5+k3s1 / v1.34.8+k3s1 (+ v1.33.12+k3s1). **CVE-2026-33186 (grpc-go authz bypass, CVSS 9.1) is REMEDIATED** even though GA notes are silent: `v1.36.1+k3s1` `go.mod` carries `replace google.golang.org/grpc => v1.79.3` overriding `require ...grpc v1.80.0`. **Correction: vendored Go is 1.26.2, not 1.25.9** as the 2026-05-19 note recorded. §5.1 header, body line, and the CVE-2026-33186 bullet all updated (bullet marked RESOLVED).
+
+4. **fapolicyd v1.5 (2026-05-20)** — first minor bump off 1.4.x (transactional rule reload, `--check-rules`, per-rule hit counters, decision-timing framework). Flagged "validate rule-reload/trust-DB parity before pinning" since it's a deny-by-default execution gate. §6.2 updated.
+
+5. **Routine bumps recorded:** image-builder-cli **v65** (2026-05-21, no new format coverage; issue #506 still open); NVIDIA Container Toolkit **v1.19.1** (2026-05-21, CDI tweaks); Mesa **26.1.1** (feature branch); WSL **2.7.7** (2026-05-19 stable); Renovate **43.192.0** (2026-05-22); etcd **3.7.0-beta.0** (2026-05-19 pre-release, not for prod); libvirt **12.4.0** in-progress/unreleased.
+
+**CORRECTION / prior-content invalidation:**
+- §8.1's "No May 2026 NVIDIA bulletin published (verified 2026-05-16)" is now **invalidated** — the bulletin exists (a_id/5821). Corrected in place; the Jan 2026 advisory a_id/5747 retained as the older floor.
+- §5.1's "Go 1.25.9" recorded on 2026-05-19 was **wrong** — GA vendored Go is 1.26.2. Corrected.
+
+**RESOLVED follow-up questions:**
+- **CVE-2026-33186 grpc-go callout (open since 2026-05-16)** — RESOLVED. The K3s 2026-05-20 GA links grpc-go v1.79.3 via a `replace` directive; release notes remain silent but the binary is patched. Any host on a K3s GA tag is covered. Long-standing watch item closed.
+- **NVIDIA May 2026 bulletin (cadence-due)** — RESOLVED (published, pins satisfy).
+
+**Carried forward (still unresolved — out of research-only scope):** the same code-inspection set (workflow `bootc-image-builder-action` migration; cosign binary pin in `42-cosign-policy.sh`; SELinux site-module path; KVMFR build-time signing; fapolicyd trust-DB rebuild timing; GNOME 50 in stable-nvidia; AMD iGPU blacklist decision; K3s HA vs sqlite mode; NVIDIA driver branch pin; Mesa line in the running image). New unresolved: which Fedora kernel NVR first carries DirtyDecrypt (bodhi Anubis-gated, unverifiable); whether fapolicyd v1.5's rule-reload changes affect the image-build trust-DB bake.
+
+**Files modified outside `.ai-context/`:** None. Strict scope compliance.
+
+**Surprises:**
+- **The 2026-05-20 pass's doc + journal edits were lost to a git-receive-pack 503** — only the NEXT-RESEARCH commit (1/3) survived. This is the *second consecutive pass* (after 2026-05-19) to hit a proxy 503 on git push, and the first to lose work because of it. The recurring 503 on the git endpoint is a real operational risk for this scheduled job — flagged in NEXT-RESEARCH.
+- **Zero forward motion on every ucore remediation lever for 3+ days** while the kernel local-root surface grew from ~1 headline CVE to 5 named vectors with public PoCs. PR #392 (the only path) has been static since 2026-05-17; ucore main idle 15 days; GHCR bake stalled 11 days. The gap between exposure and the project's ability to remediate is widening, and the project doesn't own the lever.
+- **K3s shipping a CVE-9.1 fix via a silent `replace` directive** (no release-note callout) is a reminder that release notes are not a reliable CVE-remediation signal — go.mod inspection was required to confirm. Worth remembering for future "is this CVE fixed?" questions.
+
+**Prior journal entries resolved or invalidated:** No prior journal entry outright invalidated. Two doc data points corrected (NVIDIA May-bulletin status; K3s Go version) as noted above.
+
+**Next pass:** Per overwritten `NEXT-RESEARCH.md`. Tightest watches remain (1) Secure Boot shim-16.1-6 in F44 (~35 days to cutover, hard checkpoint 2026-06-05) and (2) PR #392 merge / any new ucore-hci tag. K3s pin bump to GA is now actionable for the owner.
+
+**Drive mirror note:** Daily Drive snapshot uploaded as `CloudWS-bootc-research-2026-05-22.md` (Drive file id `1knZCUmYYRwmMI8E6d0IQlc_s9DmFjnj8`). **Trade-off (unchanged from prior passes):** the knowledge doc is now ~82KB / ~47K tokens — over the single-Read 25K-token cap and, per the 2026-05-18 journal note, chunked-reassembly into one MCP `textContent` parameter "proved fragile." The Drive file is therefore a dated **snapshot index** (action-item state + deltas + pointer back to the git-authoritative full doc), not a verbatim copy. The git commit for this pass is the authoritative verbatim archive. Future passes should consider an alternate verbatim-mirror mechanism if the requirement hardens (e.g. a path-based upload tool, or splitting the doc into per-topic files small enough to round-trip).
